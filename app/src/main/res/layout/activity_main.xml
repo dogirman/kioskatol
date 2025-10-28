@@ -1,0 +1,29 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <GridView
+        android:id="@+id/appGrid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:numColumns="3"
+        android:verticalSpacing="12dp"
+        android:horizontalSpacing="12dp"
+        android:gravity="center"
+        android:layout_above="@+id/btnAdmin" />
+
+    <ImageButton
+        android:id="@+id/btnAdmin"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="32dp"
+        android:src="@android:drawable/ic_lock_lock"
+        android:background="?android:selectableItemBackgroundBorderless"
+        android:contentDescription="Админ"
+        app:tint="@android:color/darker_gray" />
+
+</RelativeLayout>
