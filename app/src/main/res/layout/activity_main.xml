@@ -1,29 +1,48 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:gravity="center_horizontal"
+    android:background="@android:color/black">
 
-    <GridView
-        android:id="@+id/appGrid"
+    <!-- Контейнер иконок приложений -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:numColumns="3"
-        android:verticalSpacing="12dp"
-        android:horizontalSpacing="12dp"
-        android:gravity="center"
-        android:layout_above="@+id/btnAdmin" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <ImageButton
-        android:id="@+id/btnAdmin"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="32dp"
-        android:src="@android:drawable/ic_lock_lock"
-        android:background="?android:selectableItemBackgroundBorderless"
-        android:contentDescription="Админ"
-        app:tint="@android:color/darker_gray" />
+        <LinearLayout
+            android:id="@+id/appIconsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:layout_marginTop="16dp" />
+    </ScrollView>
 
-</RelativeLayout>
+    <!-- Кнопка входа в админ режим -->
+    <Button
+        android:id="@+id/btnAdminMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Админ режим"
+        android:layout_marginBottom="12dp"
+        android:padding="10dp"
+        android:backgroundTint="@android:color/holo_blue_dark"
+        android:textColor="@android:color/white" />
+
+    <!-- Кнопка открытия Wi-Fi настроек -->
+    <Button
+        android:id="@+id/btnWifiSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Настройки Wi-Fi"
+        android:drawableTop="@android:drawable/ic_menu_manage"
+        android:padding="10dp"
+        android:backgroundTint="@android:color/holo_green_dark"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

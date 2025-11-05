@@ -24,22 +24,37 @@ class AppListActivity : AppCompatActivity() {
         exitButton = findViewById(R.id.btnExitAdmin)
 
         val pm = packageManager
+
+        val wifiButton = findViewById<Button>(R.id.btnWifiSettings)
+        wifiButton.setOnClickListener {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
+            } catch (e: Exception) {
+                Toast.makeText(this, "Не удалось открыть настройки Wi-Fi", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
+        // получаем список приложений как MutableList
         val apps = pm.getInstalledApplications(0)
             .filter { app ->
                 (pm.getLaunchIntentForPackage(app.packageName) != null &&
                         !app.packageName.startsWith("com.android")) ||
                         app.packageName.contains("settings", true)
             }
+            .toMutableList() // <- обязательно mutable
 
-        val allowedSet = prefs.getStringSet("allowed_apps", mutableSetOf())?.toMutableSet()
-            ?: mutableSetOf()
+        // получаем и приводим к MutableSet (если пусто — новый mutableSet)
+        val allowedSet: MutableSet<String> =
+            prefs.getStringSet("allowed_apps", null)?.toMutableSet() ?: mutableSetOf()
 
-        adapter = AppListAdapter(this, apps, allowedSet)
+        // создаём адаптер: (context, packageManager, appList, selectedPackages)
+        adapter = AppListAdapter(this, pm, apps, allowedSet)
         listView.adapter = adapter
 
         saveButton.setOnClickListener {
             val selected = adapter.getSelectedPackages()
-            prefs.edit().putStringSet("allowed_apps", selected).apply()
+            prefs.edit().putStringSet("allowed_apps", selected.toSet()).apply()
             Toast.makeText(this, "Сохранено ${selected.size} приложений", Toast.LENGTH_SHORT).show()
         }
 
@@ -49,5 +64,13 @@ class AppListActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+    }
+
+    // На случай, если пользователь уходит с экрана — автоматически сохраняем
+    override fun onPause() {
+        super.onPause()
+        // сохраняем текущее состояние выбранных пакетов
+        val selected = adapter.getSelectedPackages()
+        prefs.edit().putStringSet("allowed_apps", selected.toSet()).apply()
     }
 }

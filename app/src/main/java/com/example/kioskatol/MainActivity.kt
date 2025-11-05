@@ -1,63 +1,88 @@
 package com.example.kioskatol
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.GridView
-import android.widget.ImageButton
+import android.provider.Settings
+import android.view.LayoutInflater
+import android.widget.*
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var gridView: GridView
-    private lateinit var adminButton: ImageButton
     private lateinit var prefs: SharedPreferences
-    private lateinit var pm: PackageManager
+    private lateinit var appIconsContainer: LinearLayout
+    private lateinit var btnWifiSettings: Button
+    private lateinit var btnAdminMode: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences("kiosk_prefs", MODE_PRIVATE)
-        pm = packageManager
-
-        gridView = findViewById(R.id.appGrid)
-        adminButton = findViewById(R.id.btnAdmin)
+        appIconsContainer = findViewById(R.id.appIconsContainer)
+        btnWifiSettings = findViewById(R.id.btnWifiSettings)
+        btnAdminMode = findViewById(R.id.btnAdminMode)
 
         val allowedApps = prefs.getStringSet("allowed_apps", emptySet()) ?: emptySet()
-        val appList = allowedApps.mapNotNull { pkg ->
-            try { pm.getApplicationInfo(pkg, 0) } catch (e: Exception) { null }
-        }
+        val pm = packageManager
+        val apps = pm.getInstalledApplications(0)
+            .filter { app -> allowedApps.contains(app.packageName) }
 
-        val adapter = object : android.widget.BaseAdapter() {
-            override fun getCount() = appList.size
-            override fun getItem(pos: Int) = appList[pos]
-            override fun getItemId(pos: Int) = pos.toLong()
-            override fun getView(pos: Int, convertView: android.view.View?, parent: android.view.ViewGroup?): android.view.View {
-                val view = layoutInflater.inflate(R.layout.item_app_icon, parent, false)
-                val appInfo = appList[pos]
-                val icon = view.findViewById<android.widget.ImageView>(R.id.appIcon)
-                val label = view.findViewById<android.widget.TextView>(R.id.appLabel)
-                icon.setImageDrawable(pm.getApplicationIcon(appInfo))
-                label.text = pm.getApplicationLabel(appInfo)
-                view.setOnClickListener {
-                    val launchIntent = pm.getLaunchIntentForPackage(appInfo.packageName)
-                    if (launchIntent != null) startActivity(launchIntent)
-                    else Toast.makeText(this@MainActivity, "Невозможно открыть", Toast.LENGTH_SHORT).show()
-                }
-                return view
+        val inflater = LayoutInflater.from(this)
+        appIconsContainer.removeAllViews()
+
+        for (app in apps) {
+            val iconView = inflater.inflate(R.layout.app_icon_item, appIconsContainer, false) as ImageView
+            iconView.setImageDrawable(app.loadIcon(pm))
+            iconView.setOnClickListener {
+                val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
+                launchIntent?.let { startActivity(it) }
             }
+            appIconsContainer.addView(iconView)
         }
-        gridView.adapter = adapter
 
-        adminButton.setOnClickListener {
-            startActivity(Intent(this, AdminLoginActivity::class.java))
+        // Кнопка Wi-Fi
+        btnWifiSettings.setOnClickListener {
+            val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+            startActivity(intent)
         }
+
+        // Вход в админ режим с паролем
+        btnAdminMode.setOnClickListener {
+            showAdminPasswordDialog()
+        }
+
+        // Блокировка кнопки "назад"
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Блокируем выход из киоска
+            }
+        })
     }
 
-    override fun onBackPressed() {
-        // Блокируем кнопку "Назад"
+    private fun showAdminPasswordDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_admin_password, null)
+        val passwordInput = dialogView.findViewById<EditText>(R.id.editPassword)
+
+        AlertDialog.Builder(this)
+            .setTitle("Вход в админ режим")
+            .setView(dialogView)
+            .setPositiveButton("Войти") { dialog, _ ->
+                val enteredPassword = passwordInput.text.toString()
+                val savedPassword = prefs.getString("admin_password", "1234")
+
+                if (enteredPassword == savedPassword) {
+                    val intent = Intent(this, AppListActivity::class.java)
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "Неверный пароль", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Отмена") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 }
