@@ -1,8 +1,12 @@
 package com.example.kioskatol
 
 import android.app.AlertDialog
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -18,21 +22,47 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appGrid: FlexboxLayout
     private lateinit var btnWifiSettings: Button
     private lateinit var btnAdminMode: Button
+    private lateinit var dpm: DevicePolicyManager
+    private lateinit var adminComponent: ComponentName
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        prefs = getSharedPreferences("kiosk_prefs", MODE_PRIVATE)
         appGrid = findViewById(R.id.appGrid)
         btnWifiSettings = findViewById(R.id.btnWifiSettings)
         btnAdminMode = findViewById(R.id.btnAdminMode)
 
-        prefs = getSharedPreferences("kiosk_prefs", MODE_PRIVATE)
+        dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        adminComponent = ComponentName(this, DeviceAdminReceiver::class.java)
+
+        // Разрешаем запуск выбранных приложений в киоск-режиме
+        allowSelectedAppsForLockTask()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            startLockTask()
+        }
 
         setupAppGrid()
         setupButtons()
         blockStatusBar()
         blockBackButton()
+    }
+
+    private fun allowSelectedAppsForLockTask() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (dpm.isDeviceOwnerApp(packageName)) {
+                val allowedApps = prefs.getStringSet("allowed_apps", emptySet())?.toMutableSet() ?: mutableSetOf()
+                allowedApps.add(packageName) // разрешаем и само киоск-приложение
+
+                try {
+                    dpm.setLockTaskPackages(adminComponent, allowedApps.toTypedArray())
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     private fun setupAppGrid() {
@@ -75,13 +105,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        // Открытие настроек Wi-Fi
         btnWifiSettings.setOnClickListener {
             val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
             startActivity(intent)
         }
 
-        // Вход в админ-режим
         btnAdminMode.setOnClickListener {
             showAdminPasswordDialog()
         }
@@ -99,6 +127,7 @@ class MainActivity : AppCompatActivity() {
                 val savedPassword = prefs.getString("admin_password", "1234")
 
                 if (enteredPassword == savedPassword) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) stopLockTask()
                     val intent = Intent(this, AppListActivity::class.java)
                     startActivity(intent)
                 } else {
@@ -112,25 +141,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun blockBackButton() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                // Блокируем кнопку "Назад" в обычном режиме
-            }
+            override fun handleOnBackPressed() {}
         })
     }
 
-    /**
-     * Попытка блокировки шторки уведомлений.
-     * Работает не на всех устройствах (в зависимости от производителя).
-     */
     private fun blockStatusBar() {
         try {
             val statusBarService = Class.forName("android.app.StatusBarManager")
             val service = getSystemService("statusbar")
             val collapse = statusBarService.getMethod("collapsePanels")
             collapse.invoke(service)
-        } catch (e: Exception) {
-            // Игнорируем, если не поддерживается
-        }
+        } catch (_: Exception) { }
     }
 
     override fun onResume() {
