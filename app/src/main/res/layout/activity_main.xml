@@ -1,48 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:flexbox="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mainContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
     android:padding="16dp"
-    android:gravity="center_horizontal"
-    android:background="@android:color/black">
+    tools:context=".MainActivity">
 
-    <!-- Контейнер иконок приложений -->
+    <!-- Верхняя панель с кнопками -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:weightSum="2"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/btnWifiSettings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Wi-Fi настройки" />
+
+        <View
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/btnAdminMode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Админ режим" />
+    </LinearLayout>
+
+    <!-- Контейнер с иконками приложений -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-        <LinearLayout
-            android:id="@+id/appIconsContainer"
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/appGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="24dp"
-            android:layout_marginTop="16dp" />
+            flexbox:flexWrap="wrap"
+            flexbox:justifyContent="center"
+            flexbox:alignItems="center"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp" />
     </ScrollView>
-
-    <!-- Кнопка входа в админ режим -->
-    <Button
-        android:id="@+id/btnAdminMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Админ режим"
-        android:layout_marginBottom="12dp"
-        android:padding="10dp"
-        android:backgroundTint="@android:color/holo_blue_dark"
-        android:textColor="@android:color/white" />
-
-    <!-- Кнопка открытия Wi-Fi настроек -->
-    <Button
-        android:id="@+id/btnWifiSettings"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Настройки Wi-Fi"
-        android:drawableTop="@android:drawable/ic_menu_manage"
-        android:padding="10dp"
-        android:backgroundTint="@android:color/holo_green_dark"
-        android:textColor="@android:color/white" />
 
 </LinearLayout>

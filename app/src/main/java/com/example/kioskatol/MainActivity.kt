@@ -9,20 +9,21 @@ import android.view.LayoutInflater
 import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.flexbox.FlexboxLayout
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
-    private lateinit var appIconsContainer: LinearLayout
+    private lateinit var appGrid: LinearLayout
     private lateinit var btnWifiSettings: Button
     private lateinit var btnAdminMode: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val appGrid = findViewById<FlexboxLayout>(R.id.appGrid)
 
         prefs = getSharedPreferences("kiosk_prefs", MODE_PRIVATE)
-        appIconsContainer = findViewById(R.id.appIconsContainer)
         btnWifiSettings = findViewById(R.id.btnWifiSettings)
         btnAdminMode = findViewById(R.id.btnAdminMode)
 
@@ -32,16 +33,16 @@ class MainActivity : AppCompatActivity() {
             .filter { app -> allowedApps.contains(app.packageName) }
 
         val inflater = LayoutInflater.from(this)
-        appIconsContainer.removeAllViews()
+        appGrid.removeAllViews()
 
         for (app in apps) {
-            val iconView = inflater.inflate(R.layout.app_icon_item, appIconsContainer, false) as ImageView
+            val iconView = inflater.inflate(R.layout.app_icon_item, appGrid, false) as ImageView
             iconView.setImageDrawable(app.loadIcon(pm))
             iconView.setOnClickListener {
                 val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
                 launchIntent?.let { startActivity(it) }
             }
-            appIconsContainer.addView(iconView)
+            appGrid.addView(iconView)
         }
 
         // Кнопка Wi-Fi
