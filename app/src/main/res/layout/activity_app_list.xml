@@ -25,14 +25,14 @@
         android:text="💾 Сохранить"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="8dp" />
 
     <Button
         android:id="@+id/btnWifiSettings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Настройки Wi-Fi"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="4dp" />
 
 
     <Button
@@ -40,6 +40,7 @@
         android:text="🚪 Выйти из админ-режима"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="25dp"/>
 
 </LinearLayout>
