@@ -15,6 +15,9 @@ import android.widget.*
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.flexbox.FlexboxLayout
+import android.net.Uri
+import android.view.ViewGroup
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -51,58 +54,106 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun allowSelectedAppsForLockTask() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (dpm.isDeviceOwnerApp(packageName)) {
-                val allowedApps = prefs.getStringSet("allowed_apps", emptySet())?.toMutableSet() ?: mutableSetOf()
-                allowedApps.add(packageName) // разрешаем и само киоск-приложение
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            val dpm = getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val component = ComponentName(this, DeviceAdminReceiver::class.java)
 
-                try {
-                    dpm.setLockTaskPackages(adminComponent, allowedApps.toTypedArray())
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            dpm.setLockTaskPackages(
+                component,
+                arrayOf(
+                    packageName,
+                    "com.whatsapp",
+                    "com.android.vending",
+                    "com.google.android.gms",
+                    "com.android.chrome"
+                )
+            )
+
+            startLockTask()
         }
+
     }
+
 
     private fun setupAppGrid() {
         val pm = packageManager
         val allowedApps = prefs.getStringSet("allowed_apps", emptySet()) ?: emptySet()
 
         val allApps = pm.getInstalledApplications(0)
+        // Отбираем только те приложения, которые в allowed_apps
         val appsToShow = allApps.filter { allowedApps.contains(it.packageName) }
 
         appGrid.removeAllViews()
 
+        val inflater = LayoutInflater.from(this)
+
         for (app in appsToShow) {
+            // 1) Скрываем Play Market из сетки (но он остаётся в whitelist)
+            if (app.packageName == "com.android.vending") {
+                continue
+            }
+
+            // Контейнер иконки + подписи
             val itemLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 setPadding(24, 24, 24, 24)
+                layoutParams = FlexboxLayout.LayoutParams(
+                    FlexboxLayout.LayoutParams.WRAP_CONTENT,
+                    FlexboxLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    // Немного отступов между элементами
+                    (this as? ViewGroup.MarginLayoutParams)?.setMargins(12, 12, 12, 12)
+                }
             }
 
+            // Иконка приложения
             val iconView = ImageView(this).apply {
                 setImageDrawable(app.loadIcon(pm))
                 layoutParams = LinearLayout.LayoutParams(150, 150)
+                isClickable = true
+                isFocusable = true
             }
 
+            // Подпись под иконкой
             val labelView = TextView(this).apply {
                 text = app.loadLabel(pm)
-                textSize = 14f
+                textSize = 12f
                 gravity = Gravity.CENTER
                 setPadding(0, 8, 0, 0)
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
             }
 
             itemLayout.addView(iconView)
             itemLayout.addView(labelView)
 
+            // Клик по элементу
             itemLayout.setOnClickListener {
-                pm.getLaunchIntentForPackage(app.packageName)?.let { startActivity(it) }
+                try {
+                    // Запускаем приложение напрямую
+                    pm.getLaunchIntentForPackage(app.packageName)?.let { launch ->
+                        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(launch)
+                    }
+                } catch (e: Exception) {
+                    // fallback: если приложение само не открылось
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("market://details?id=${app.packageName}")
+                            setPackage("com.android.vending")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                    } catch (_: Exception) { /* игнор */ }
+                }
             }
+
 
             appGrid.addView(itemLayout)
         }
     }
+
 
     private fun setupButtons() {
         btnWifiSettings.setOnClickListener {
@@ -153,6 +204,27 @@ class MainActivity : AppCompatActivity() {
             collapse.invoke(service)
         } catch (_: Exception) { }
     }
+
+    private fun safeStartActivity(intent: Intent) {
+
+        val url = intent.dataString ?: ""
+
+        // 1 — WhatsApp пытается открыть страницу обновления → принудительно ведём в Google Play
+        if (url.contains("whatsapp.com") || url.contains("whatsapp.net")) {
+            val marketIntent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("market://details?id=com.whatsapp")
+                setPackage("com.android.vending")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(marketIntent)
+            return
+        }
+
+        // 2 — всё остальное запускаем как обычно
+        startActivity(intent)
+    }
+
+
 
     override fun onResume() {
         super.onResume()
